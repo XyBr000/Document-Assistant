@@ -12,6 +12,6 @@ pip install -r requirements.txt
 ```
 then run
 ```sh
-python run.ppy
+python run.py
 ```
 You will be asked to input your API key. You can find that at https://platform.openai.com/account/api-keys
