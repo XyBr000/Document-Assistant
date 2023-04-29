@@ -14,7 +14,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 from tkinter import ttk
 from ttkthemes import ThemedTk
-import sv_ttk
 
 
 root = tk.Tk()
