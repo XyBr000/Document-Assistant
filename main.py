@@ -40,6 +40,7 @@ from configparser import ConfigParser
 config = ConfigParser()
 # Function to handle options menu opening
 def options_command():
+    load_dotenv(override=True)
     def update_config():
         config.set('main', 'gpt4', str(checkbox_var.get()))
         with open('config.ini', 'w') as configfile:
