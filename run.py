@@ -83,10 +83,20 @@ if api_check == 0:
 
     popup.mainloop()
 
+
+from configparser import ConfigParser
+config = ConfigParser()
+config.read('config.ini')
+
 if gpt4_check == 1:
     set_key('.env', 'GPT_4', 'True')
+    if(config.get('main', 'gpt4') == ""): #if first time setup then enable gpt4 by default
+        config.set('main', 'gpt4', 'True')
+        with open('config.ini', 'w') as configfile:
+            config.write(configfile)
 else:
     set_key('.env', 'GPT_4', 'False')
+    config.set('main', 'gpt4', 'False')
 
 
 

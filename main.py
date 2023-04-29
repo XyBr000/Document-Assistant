@@ -16,6 +16,7 @@ import sv_ttk
 
 
 root = tk.Tk()
+root.iconbitmap("icon.ico")
 
 # Pack a big frame so, it behaves like the window background
 big_frame = ttk.Frame(root)
@@ -34,6 +35,35 @@ open_sans_font = font.Font(family="Open Sans")
 root.option_add("*font", open_sans_font)
 
 
+
+from configparser import ConfigParser
+config = ConfigParser()
+# Function to handle options menu opening
+def options_command():
+    def update_config():
+        config.set('main', 'gpt4', str(checkbox_var.get()))
+        with open('config.ini', 'w') as configfile:
+            config.write(configfile)
+
+    config.read('config.ini')
+
+
+    options_window = tk.Toplevel(root)
+    options_window.iconbitmap("icon.ico")
+    options_window.title("Options")
+    options_window.geometry("600x200")
+    options_window.resizable(width=False, height=False)
+
+
+    checkbox_var = tk.BooleanVar(value=config.getboolean('main', 'gpt4'))
+    if(os.getenv('GPT_4') == "False"):
+        checkbox_var.set(False)
+        update_config()
+        checkbox = ttk.Checkbutton(options_window, text="GPT-4", variable=checkbox_var, onvalue=True, offvalue=False, command=update_config, state=tk.DISABLED)
+    else:
+        checkbox = ttk.Checkbutton(options_window, text="GPT-4", variable=checkbox_var, onvalue=True, offvalue=False, command=update_config)
+    checkbox.pack(padx=80, pady=20)
+
 # Function to handle submit text button
 def on_button_click():
     textinput = text_box.get('1.0', 'end') #store text from input in variable
@@ -51,10 +81,12 @@ button.place(anchor='se', relx=0.99, rely=0.91)  # Add button to the main window
 # Prompt Text Input
 text_box = tk.Text(root, wrap="word", width=140, height=10, borderwidth=2, relief="groove")
 text_box.place(anchor='se', relx=0.922, rely=0.99)
+
 # GPT criteria output field
 analysis_field = ttk.Label(big_frame, text="", font=(open_sans_font, 14))
 analysis_field.pack(pady=10)  # Add label to the main window with some padding
 
+# GPT criticism text field
 critique_field = ttk.Label(big_frame, text="", font=(open_sans_font, 14), wraplength=300)
 critique_field.pack(padx=50, anchor='nw')
 
@@ -63,12 +95,29 @@ text_field = tk.Message(big_frame, text="", font=(open_sans_font, 10), width=750
 text_field.place(anchor='center', relx=0.5, rely=0.35)
 
 
+# Settings button
+options_button = ttk.Button(big_frame, text="Options", command=options_command)
+options_button.place(anchor='nw', relx=0.01, rely=0.01)  # Add button to the main window with some padding
+
+
+
+
+
+def get_model(): #check the config to see what model to use
+    config.read('config.ini')
+    gpt4_bool = config.getboolean('main', 'gpt4')
+    if(gpt4_bool == True):
+        model_to_use = 'gpt-4'
+    else:
+        model_to_use = 'gpt-3.5-turbo'
+    return model_to_use
+
 # API request function
 def analysis(prompt):
-  output = openai.ChatCompletion.create(
-  model="gpt-4",
-  messages=[
-    {"role": "system", "content": """When text is entered your job is to reply in bullet point format to the following criteria on a scale of 0-100 (0 being the worst, 100 being perfect. An average text would score 50). 
+    output = openai.ChatCompletion.create(
+    model=get_model(),
+    messages=[
+      {"role": "system", "content": """When text is entered your job is to reply in bullet point format to the following criteria on a scale of 0-100 (0 being the worst, 100 being perfect. An average text would score 50). 
 
 [1. Readability: Assess the text based on how easy it is to read and understand. The harder it is to understand, the lower the value.
 
@@ -91,20 +140,20 @@ setting
 3. Grammar: grammar/100
 4. Punctuation: punctuation/100
 5. Spelling: spelling/100"""},
-    {"role": "user", "content": prompt}
-  ]
-)
-  return output
+      {"role": "user", "content": prompt}
+    ]
+  )
+    return output
 
 def critique(prompt):
-  output = openai.ChatCompletion.create(
-  model="gpt-4",
-  messages=[
-    {"role": "system", "content": """When text is entered your job is to find the biggest problems in the text and write a short critique on them. ONLY OUTPUT THE CRITIQUE. DO NOT WRITE ANYTHING OTHER THAN THE CRITIQUE."""},
-    {"role": "user", "content": prompt}
-  ]
-)
-  return output
+    output = openai.ChatCompletion.create(
+    model=get_model(),
+    messages=[
+      {"role": "system", "content": """When text is entered your job is to find the biggest problems in the text and write a short critique on them. ONLY OUTPUT THE CRITIQUE. DO NOT WRITE ANYTHING OTHER THAN THE CRITIQUE."""},
+      {"role": "user", "content": prompt}
+    ]
+  )
+    return output
 
 
 # Start the main loop
