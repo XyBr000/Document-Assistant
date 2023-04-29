@@ -1,6 +1,8 @@
 import tkinter as tk
 import openai
 import os
+import time
+import threading
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -27,7 +29,7 @@ root.tk.call("source", "theme/azure.tcl")
 root.tk.call("set_theme", "dark")
 
 root.title("GPT Document Helper")
-root.geometry("1600x900")  # Set window size (width x height)
+root.geometry("1600x900+-7+0")  # Set window size (width x height)
 root.resizable(width=False, height=False)
 
 from tkinter import font
@@ -57,7 +59,7 @@ def options_command():
 
 
     checkbox_var = tk.BooleanVar(value=config.getboolean('main', 'gpt4'))
-    if(os.getenv('GPT_4') == "False"):
+    if os.getenv('GPT_4') == "False":
         checkbox_var.set(False)
         update_config()
         checkbox = ttk.Checkbutton(options_window, text="GPT-4", variable=checkbox_var, onvalue=True, offvalue=False, command=update_config, state=tk.DISABLED)
@@ -65,8 +67,22 @@ def options_command():
         checkbox = ttk.Checkbutton(options_window, text="GPT-4", variable=checkbox_var, onvalue=True, offvalue=False, command=update_config)
     checkbox.pack(padx=80, pady=20)
 
+
+def check_labels():
+    while(True):
+        time.sleep(0.2)        
+        print(critique_field.cget("text"))
+        if critique_field.cget("text") == "":
+            ""
+        else:
+            update_labels()
+            break
+
+
 # Function to handle submit text button
 def on_button_click():
+    long_thread = threading.Thread(target=check_labels)
+    long_thread.start()
     textinput = text_box.get('1.0', 'end') #store text from input in variable
     analysis_output = analysis(textinput).choices[0].message.content #api
     critique_output = critique(textinput).choices[0].message.content
@@ -80,26 +96,35 @@ button = ttk.Button(big_frame, text="Submit Text!", command=on_button_click)
 button.place(anchor='se', relx=0.99, rely=0.91)  # Add button to the main window with some padding
 
 # Prompt Text Input
-text_box = tk.Text(root, wrap="word", width=140, height=10, borderwidth=2, relief="groove")
+text_box = tk.Text(big_frame, wrap="word", width=140, height=10, borderwidth=2, relief="groove")
 text_box.place(anchor='se', relx=0.922, rely=0.99)
 
 # GPT criteria output field
-analysis_field = ttk.Label(big_frame, text="", font=(open_sans_font, 14))
-analysis_field.pack(pady=10)  # Add label to the main window with some padding
+analysis_label = tk.Label(big_frame, text="Analysis", font=(open_sans_font, 16, "bold"), fg="#f9cb9c", wraplength=300)
+analysis_frame = ttk.LabelFrame(big_frame, text="", labelwidget=analysis_label)
+analysis_frame.place_forget()
+analysis_field = tk.Label(analysis_frame, text="", font=(open_sans_font, 14), fg="#f9cb9c", wraplength=300)
+analysis_field.pack(pady=10, padx=25)  # Add label to the main window with some padding
 
 # GPT criticism text field
-critique_field = ttk.Label(big_frame, text="", font=(open_sans_font, 14), wraplength=300)
-critique_field.pack(padx=50, anchor='nw')
+critique_label = tk.Label(big_frame, text="Feedback", font=(open_sans_font, 16, "bold"), fg="#f9cb9c", wraplength=300)
+critique_frame = ttk.LabelFrame(big_frame, text="", labelwidget=critique_label)
+critique_frame.place_forget()
+critique_field = tk.Label(critique_frame, text="", font=(open_sans_font, 14), fg="#f9cb9c", wraplength=300)
+critique_field.pack(pady=20, padx=25)
 
 # Full text document display
-text_field = tk.Message(big_frame, text="", font=(open_sans_font, 10), width=750)
-text_field.place(anchor='center', relx=0.5, rely=0.35)
-
+text_field = tk.Message(big_frame, text="", font=(open_sans_font, 10), fg="#9fc5e8", width=750)
+text_field.place(anchor='n', relx=0.5, rely=0.3)
 
 # Settings button
 options_button = ttk.Button(big_frame, text="Options", command=options_command)
-options_button.place(anchor='nw', relx=0.01, rely=0.01)  # Add button to the main window with some padding
+options_button.place(anchor='nw', relx=0.0056, rely=0.01)  # Add button to the main window with some padding
 
+def update_labels():
+    print("test1")
+    critique_frame.place(anchor='nw', relx=0.0056, rely=0.2)
+    analysis_frame.pack(pady=10)
 
 
 
@@ -107,7 +132,7 @@ options_button.place(anchor='nw', relx=0.01, rely=0.01)  # Add button to the mai
 def get_model(): #check the config to see what model to use
     config.read('config.ini')
     gpt4_bool = config.getboolean('main', 'gpt4')
-    if(gpt4_bool == True):
+    if gpt4_bool == True:
         model_to_use = 'gpt-4'
     else:
         model_to_use = 'gpt-3.5-turbo'
@@ -130,7 +155,7 @@ def analysis(prompt):
 
 5. Spelling: Check for corrent spelling throughout the text. Errors in spelling will significantly lower this value.]
 
-REMEMBER! DON'T RATE TOO HIGHLY, "100" MEANS THAT IT IS ABSOLUTE PERFECTION, AVERAGE TEXT IS ONLY 50!!!!! BE CRITICAL.
+REMEMBER! DON'T RATE TOO HIGHLY, "100" MEANS THAT IT IS ABSOLUTE PERFECTION, AVERAGE TEXT IS ONLY 50!!!!! BE CRITICAL. RATE 25% LOWER THAN YOU THINK THEY SHOULD BE.
 you must also output the setting of the text, for example: formal, casual, sarcastic, comedic, urgent, and many other types - how is the text perceived to the reader?
 your response MUST be in the following format: 
 
@@ -150,7 +175,7 @@ def critique(prompt):
     output = openai.ChatCompletion.create(
     model=get_model(),
     messages=[
-      {"role": "system", "content": """When text is entered your job is to find the biggest problems in the text and write a short critique on them. ONLY OUTPUT THE CRITIQUE. DO NOT WRITE ANYTHING OTHER THAN THE CRITIQUE."""},
+      {"role": "system", "content": """When text is entered your job is to find the biggest problems in the text and write a short critique on them. ONLY OUTPUT THE CRITIQUE. DO NOT WRITE ANYTHING OTHER THAN THE CRITIQUE. Output this in numerical format (1. 2. 3.), and make sure theres a line gap between each."""},
       {"role": "user", "content": prompt}
     ]
   )
