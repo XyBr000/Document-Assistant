@@ -1,6 +1,6 @@
 # Document Assistant
  Input text and recieve feedback from GPT.
- 
+ #
 DEMO:
  
 
@@ -10,9 +10,9 @@ https://user-images.githubusercontent.com/128632935/235324289-d0738e20-f063-4753
 
 This is a very early version with limited capabilities. I will keep adding to it over time.
 
+Due to the nature of GPT, the output is not 100% reliable and it might hallucinate. Make sure to double check the output before you use it.
 #
 Installation:
-
 
 download or clone this GitHub repo  
 
