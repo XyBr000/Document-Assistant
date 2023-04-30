@@ -1,5 +1,5 @@
 # Document Assistant
- Input text and recieve feedback from GPT.
+ Input text, recieve feedback, and generate rewrites from GPT.
  #
 DEMO:
  
