@@ -34,9 +34,9 @@ root.option_add("*font", open_sans_font)
 from configparser import ConfigParser
 config = ConfigParser()
 textinput = ""
-def scrolled_text():
+def scrolled_text(textbox):
     global text_field_base
-    text_field_base = create_message(big_frame, text=textinput, fg="#9fc5e8", width=85, font_obj=open_sans_font, relx=2.5, rely=5)
+    text_field_base = create_message(big_frame, text=textbox, fg="#9fc5e8", width=85, font_obj=open_sans_font, relx=2.5, rely=5)
 
     scrolled_frame = create_scrolled_frame(big_frame, width=800, height=350, scrollheight=text_field_base.winfo_reqheight())
     global text_field
@@ -59,9 +59,9 @@ def update_analysis(inital):
             while analysis_result == "":
                 time.sleep(0.2)
             text_field_base.insert(tk.END, textinput)
-            scrolled_text()
+            scrolled_text(textinput)
         else:
-            analysis_result = analysis(text_field.cget('text'))
+            analysis_result = analysis(text_field.get(1.0, tk.END))
         analysis_field.config(text=analysis_result)
 
     analysis_thread = threading.Thread(target=update_analysis_thread)
@@ -76,9 +76,9 @@ def update_critique(initial):
             while critique_result == "":
                 time.sleep(0.2)
             text_field_base.insert(tk.END, textinput)
-            scrolled_text()
+            scrolled_text(textinput)
         else:
-            critique_result = critique(text_field.cget('text'))
+            critique_result = critique(text_field.get(1.0, tk.END))
             get_critique_field(critique_result) #send the critique field to the api_functions.py file
         critique_field.config(text=critique_result)
 
@@ -87,8 +87,9 @@ def update_critique(initial):
 
 def update_rewrite():
     def update_rewrite_thread():
-        rewrite_result = rewrite(text_field.cget('text'), rewrite_option)
-        text_field.config(text=rewrite_result)
+        rewrite_result = rewrite(text_field.get(1.0, tk.END), rewrite_option)
+        print(rewrite_result)
+        scrolled_text(rewrite_result)
         update_critique(initial=False)
         update_analysis(inital=False)
 
@@ -114,7 +115,7 @@ analysis_frame, analysis_field = create_label_frame(big_frame, text="Analysis", 
 
 critique_frame, critique_field = create_label_frame(big_frame, text="Feedback", fg="#f9cb9c", wraplength=300, pady=20, padx=25, font_obj=open_sans_font)
 
-scrolled_text()
+scrolled_text(textinput)
 
 options_button = create_button(big_frame, text="Options", command=lambda: options_command(root), relx=0.075, rely=0.045, font_obj=open_sans_font)
 
