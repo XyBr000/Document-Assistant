@@ -119,10 +119,11 @@ def on_rewrite_button_click():
 rewrite_text_button = create_button(big_frame, text="Rewrite Text", command=on_rewrite_button_click, relx=0.197, rely=0.045, font_obj=open_sans_font)
 rewrite_text_button.place_forget()
 
+
+
 def update_labels():
     critique_frame.place(anchor='nw', relx=0.0056, rely=0.2)
-    analysis_frame.pack(pady=10)
-    rewrite_text_button.place(relx=0.197, rely=0.045)
+    rewrite_text_button.place(anchor="se", relx=0.197, rely=0.045, bordermode="inside")
     rewrite_text_field.place(relx=0.1, rely=0.05)
-
+    analysis_frame.pack(pady=10)
 root.mainloop()
