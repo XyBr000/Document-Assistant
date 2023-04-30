@@ -19,10 +19,6 @@ root.iconbitmap("icon.ico")
 big_frame = ttk.Frame(root)
 big_frame.pack(fill="both", expand=True)
 
-# Set the initial theme
-#root.tk.call("source", "theme/azure.tcl")
-#root.tk.call("set_theme", "dark")
-
 root.title("GPT Document Helper")
 root.geometry("1600x900+-7+0")  # Set window size (width x height)
 root.resizable(width=False, height=False)
