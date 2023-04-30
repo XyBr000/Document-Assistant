@@ -70,10 +70,14 @@ def rewrite(prompt, rewrite_option):
     return output.choices[0].message.content
 
 
+def get_critique_field(critique):
+    global critique_field
+    critique_field = critique
+
 def rewrite_prompts(rewrite_option):
     # Generate GPT-4 prompts for each rewrite selection
     if rewrite_option == "From feedback":
-        rewrite_prompt = f"Rewrite the text based on this feedback: {critique_field.cget('text')}"
+        rewrite_prompt = f"Rewrite the text based on this feedback: {critique_field}"
     if rewrite_option == "Fix grammar":
         rewrite_prompt = "Rewrite the text to fix the grammar and ONLY the grammar."
     if rewrite_option == "Fix punctuation":
