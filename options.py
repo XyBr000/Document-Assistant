@@ -2,7 +2,8 @@ from dotenv import load_dotenv
 import os
 from configparser import ConfigParser
 import tkinter as tk
-from tkinter import ttk
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 
 load_dotenv()
 config = ConfigParser()

@@ -4,6 +4,26 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledFrame
 
+class PlaceholderEntry(ttk.Entry):
+    def __init__(self, master=None, placeholder=None, *args, **kwargs):
+        super().__init__(master, *args, **kwargs)
+
+        self.placeholder = placeholder
+        self.bind("<FocusIn>", self._clear_placeholder)
+        self.bind("<FocusOut>", self._add_placeholder)
+
+        self._add_placeholder()
+
+    def _add_placeholder(self, event=None):
+        if not self.get():
+            self.insert(0, self.placeholder)
+            self.configure(foreground="grey")
+
+    def _clear_placeholder(self, event):
+        if self.get() == self.placeholder:
+            self.delete(0, "end")
+            self.configure(foreground="white")
+
 
 def create_button(big_frame, text, command, relx, rely, font_obj):
     style = ttk.Style()
@@ -27,7 +47,6 @@ def create_label_frame(big_frame, text, fg, wraplength, pady, padx, font_obj):
     return frame, field
 
 def create_scrolled_frame(big_frame, width, height, scrollheight):
-    global sf
     sf = ScrolledFrame(master=None, width=width, height=height, autohide=True, scrollheight=scrollheight)
     #sf.pack(expand=YES)
     sf.place(anchor="center", relx=0.5, rely=0.5)
@@ -47,8 +66,13 @@ def create_message(frame, text, fg, width, font_obj, relx, rely):
     return message
 
 
-def create_combobox(big_frame, values, state, relx, rely):
-    combobox = ttk.Combobox(big_frame, values=values, state=state, bootstyle=PRIMARY)
+def create_combobox(big_frame, values, state, relx, rely, textvariable):
+    combobox = ttk.Combobox(big_frame, values=values, state=state, bootstyle=PRIMARY, textvariable=textvariable)
     combobox.selection_clear()
     combobox.place(anchor='nw', relx=relx, rely=rely)
     return combobox
+
+def create_entry(big_frame, relx, rely, width, textvariable, font_obj):
+    entry = PlaceholderEntry(big_frame, width=width, textvariable=textvariable, font=font_obj, bootstyle=PRIMARY, exportselection=0, placeholder="Rename this save")
+    entry.place(anchor='nw', relx=relx, rely=rely)
+    return entry
