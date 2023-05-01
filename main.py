@@ -5,6 +5,7 @@ from tkinter import font
 from ui_elements import create_button, create_text_box, create_label_frame, create_message, create_combobox, create_scrolled_frame
 from options import options_command
 from api_functions import analysis, critique, rewrite, rewrite_prompts, get_critique_field
+from history import create_new_history_index, update_history_index
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
@@ -32,6 +33,8 @@ config = ConfigParser()
 textinput = ""
 def scrolled_text(textbox):
     global text_field_base
+    textbox = textbox.encode('charmap', errors='ignore')
+    textbox = textbox.decode('charmap')
     text_field_base = create_message(big_frame, text=textbox, fg="#9fc5e8", width=85, font_obj=open_sans_font, relx=2.5, rely=5)
 
     scrolled_frame = create_scrolled_frame(big_frame, width=800, height=350, scrollheight=text_field_base.winfo_reqheight())
@@ -103,6 +106,9 @@ def on_button_click():
     update_critique(initial=True)
     text_box.delete('1.0', 'end')
 
+    create_new_history_index()
+    
+
 button = create_button(big_frame, text="Submit Text!", command=on_button_click, relx=0.9954, rely=0.899, font_obj=open_sans_font)
 
 text_box = create_text_box(big_frame, width=140, height=10, relx=0.922, rely=0.99)
@@ -127,7 +133,9 @@ def callback(eventObject):
 rewrite_text_field.bind("<<ComboboxSelected>>", callback)
 
 def on_rewrite_button_click():
+    update_history_index(text_field.get(1.0, tk.END), critique_field.cget("text"), analysis_field.cget("text")) # Update history file
     update_rewrite()
+
 
 rewrite_text_button = create_button(big_frame, text="Rewrite Text", command=on_rewrite_button_click, relx=0.197, rely=0.045, font_obj=open_sans_font)
 rewrite_text_button.place_forget()
