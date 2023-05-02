@@ -14,9 +14,7 @@ https://user-images.githubusercontent.com/128632935/235720369-a4d9b0f0-9749-47de
 
 
 
-
-
-This is a very early version with limited capabilities. I will keep adding to it over time.
+A for fun project that actually ended up being quite useful.
 
 Due to the nature of GPT, the output is not 100% reliable and it might hallucinate. Make sure to double check the output before you use it.
 #
