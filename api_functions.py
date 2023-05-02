@@ -98,7 +98,7 @@ def rewrite_prompts(rewrite_option):
         rewrite_prompt = "Rewrite the text by expanding on the ideas and providing more details."    
     if rewrite_option == "Make it persuasive":
         rewrite_prompt = "Rewrite the text to make it more persuasive and convincing."
-    if rewrite_option == "Add humor":
+    if rewrite_option == "Add humour":
         rewrite_prompt = "Rewrite the text by adding humor and making it more lighthearted."
     if rewrite_option == "Remove jargon":
         rewrite_prompt = "Rewrite the text by removing any jargon or technical terms and replacing them with simpler language."

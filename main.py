@@ -5,13 +5,26 @@ from tkinter import font
 from ui_elements import create_button, create_text_box, create_label_frame, create_message, create_combobox, create_scrolled_frame, create_entry
 from options import options_command
 from api_functions import analysis, critique, rewrite, rewrite_prompts, get_critique_field
-from history import create_new_history_index, update_history_index, get_history_values, on_history_changed, get_combobox, clear_empty_history_folders, create_update_save_name
+from history import create_new_history_index, update_history_index, get_history_values, on_history_changed, get_combobox, clear_empty_history_folders, on_closing, update_selected_version, create_update_save_name, get_version_combobox, update_version_combobox
+from loading import toggle_loading, load_wait_for_outputs, on_closing_load
+
 import os
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
+def on_closing_main():
+    stop_event.set()
+stop_event = threading.Event()
+
+def exit_command():
+    on_closing_main()
+    on_closing_load()    
+    on_closing()
+    root.after(300, root.destroy)
+
 root = tk.Tk()
+root.protocol("WM_DELETE_WINDOW", lambda: exit_command())
 style = ttk.Style("documenthelper")
 open_sans_font = font.Font(family="Open Sans")
 root.option_add("*font", open_sans_font)
@@ -44,7 +57,7 @@ def scrolled_text(textbox):
     text_field = create_message(scrolled_frame, text=text_field_base.get(1.0, tk.END), fg="#9fc5e8", width=85, font_obj=open_sans_font, relx=0.5, rely=0)
 
 def check_labels():
-    while True:
+    while not stop_event.is_set():
         time.sleep(0.2)
         if critique_field.cget("text") == "":
             ""
@@ -99,13 +112,13 @@ def update_rewrite():
 def on_button_click():
     long_thread = threading.Thread(target=check_labels)
     long_thread.start()
-    text_field.update_idletasks() 
-    text_field_base.update_idletasks() 
     global textinput
     textinput = text_box.get('1.0', 'end')
     update_analysis(inital=True)
     update_critique(initial=True)
     text_box.delete('1.0', 'end')
+
+    load_wait_for_outputs(analysis_field, critique_field, root) #wait for the outputs to be loaded
 
     create_new_history_index()
     
@@ -130,16 +143,17 @@ history_combobox = create_combobox(big_frame, values="", state="readonly", relx=
 get_combobox(history_combobox)
 get_history_values()
 
-def on_combobox_changed(event):
+def on_history_combobox_changed(event):
     print(history_combobox.get())
     update_labels()
-    txt, crt, any = on_history_changed()
+    txt, crt, any = on_history_changed("save")
     scrolled_text(txt)
     critique_field.config(text=crt)
     analysis_field.config(text=any)
     get_history_values()
     clear_empty_history_folders()
-history_combobox.bind("<<ComboboxSelected>>", on_combobox_changed)
+    update_selected_version()
+history_combobox.bind("<<ComboboxSelected>>", on_history_combobox_changed)
 def clear_empty_saves(event):
     clear_empty_history_folders()
 history_combobox.bind("<Enter>", clear_empty_saves)
@@ -150,6 +164,20 @@ version_text.set("Version")
 
 version_combobox = create_combobox(big_frame, values="", state="readonly", relx=0.85, rely=0.01, textvariable=version_text)
 version_combobox.place_forget()
+get_version_combobox(version_combobox)
+update_version_combobox()
+
+def on_version_combobox_changed(event):
+    update_version_combobox()
+    txt, crt, any = on_history_changed("version")
+    scrolled_text(txt)
+    critique_field.config(text=crt)
+    analysis_field.config(text=any)
+version_combobox.bind("<<ComboboxSelected>>", on_version_combobox_changed)
+def update_versions(event):
+    update_version_combobox()
+version_combobox.bind("<Enter>", update_versions)
+
 
 
 # SAVE BUTTON
@@ -169,29 +197,29 @@ rename_save_entry.place_forget()
 
 # REWRITE
 rewrite_text_label = tk.Label(big_frame, text="Rewrite Text", font=(open_sans_font, 16, "bold"), fg="#f9cb9c", wraplength=300)
-rewrite_text_field = create_combobox(big_frame, values=["From feedback", "Fix grammar", "Fix punctuation", "Fix spelling", "Formal", "Informal", "Casual", "Condense text", "Expand text", "Make it persuasive", "Add humor", "Remove jargon", "Rephrase as a list", "Rewrite for social media"], state="readonly", relx=0.1, rely=0.05, textvariable="")
-rewrite_text_field.place_forget()
+rewrite_combobox = create_combobox(big_frame, values=["From feedback", "Fix grammar", "Fix punctuation", "Fix spelling", "Formal", "Informal", "Casual", "Condense text", "Expand text", "Make it persuasive", "Add humour", "Remove jargon", "Rephrase as a list", "Rewrite for social media"], state="readonly", relx=0.1, rely=0.05, textvariable="")
+rewrite_combobox.place_forget()
 def callback(event):
     global rewrite_option
-    rewrite_option = rewrite_text_field.get()
-    rewrite_text_field.selection_clear()
-rewrite_text_field.bind("<<ComboboxSelected>>", callback)
+    rewrite_option = rewrite_combobox.get()
+    rewrite_combobox.selection_clear()
+rewrite_combobox.bind("<<ComboboxSelected>>", callback)
 def on_rewrite_button_click():
     update_history_index(text_field.get(1.0, tk.END), critique_field.cget("text"), analysis_field.cget("text")) # Update history file
+    load_wait_for_outputs(analysis_field, critique_field, root) # Load wait for outputs
     update_rewrite()
-rewrite_text_button = create_button(big_frame, text="Rewrite Text", command=on_rewrite_button_click, relx=0.197, rely=0.045, font_obj=open_sans_font)
+rewrite_text_button = create_button(big_frame, text="Rewrite & Save", command=on_rewrite_button_click, relx=0.197, rely=0.045, font_obj=open_sans_font)
 rewrite_text_button.place_forget()
 
 
 # Update labels when stuff needs to be displayed
 def update_labels():
     critique_frame.place(anchor='nw', relx=0.0056, rely=0.2)
-    rewrite_text_button.place(anchor="se", relx=0.197, rely=0.045)
-    rewrite_text_field.place(relx=0.1, rely=0.05)
+    rewrite_text_button.place(anchor="se", relx=0.2058, rely=0.045)
+    rewrite_combobox.place(relx=0.1, rely=0.05)
     analysis_frame.pack(pady=10)
     version_combobox.place(relx=0.85, rely=0.01)
     save_button.place(anchor='se', relx=0.697, rely=0.045)
-    rename_save_entry.place(anchor='se', relx=0.71, rely=0.094)
-update_labels()
+    rename_save_entry.place(anchor='se', relx=0.71, rely=0.085)
 
 root.mainloop()

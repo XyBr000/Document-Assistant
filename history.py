@@ -13,6 +13,10 @@ current_config = configparser.ConfigParser()
 count = 0
 current_save_index = 0
 
+def on_closing():
+    stop_event.set()
+stop_event = threading.Event()
+
 def set_history_index():
     global latest_history_index
     latest_history_index = count
@@ -54,22 +58,32 @@ def create_new_history_index():
 
     count = update_history()
     combobox.set("Save: " + str(count))
-    on_history_changed()
+    on_history_changed("save")
 
 # Function to update the history index
 def update_history_index(text_body, critique, analysis):
+    current_config.clear() # Clear the config file so old data doesn't get saved
     global count
     count = update_history()
     set_history_index()
     set_current_history_index()
 
     config_dir = history_dir + '/' + str(current_history_index)
+    if config_dir == "history/0": # history/0 is invalid
+        config_dir = "history/1"
 
     index_in_history = count_index_in_history()
     current_config[f'history{index_in_history}'] = {}
     current_config[f'history{index_in_history}']['text_body'] = text_body
     current_config[f'history{index_in_history}']['critique'] = critique
     current_config[f'history{index_in_history}']['analysis'] = analysis
+
+    try:
+        if current_config[f'history{index_in_history-1}']['critique'] == critique: # If the save is the same as the previous save, don't save it
+            if current_config[f'history{index_in_history-1}']['analysis'] == analysis:
+                return
+    except: # if there is no previous save, just pass
+        pass
 
     if os.path.exists(config_dir):
         with open(config_dir + '/history.ini', 'w') as configfile:
@@ -80,7 +94,8 @@ def update_history_index(text_body, critique, analysis):
     def wait_for_directory_creation():
         while not os.path.exists(config_dir):
             time.sleep(0.1)
-            print("Waiting for directory to be created...")
+            create_new_history_index()
+            print("Waiting for directory to be created...", config_dir)
         print("Directory created! ", config_dir)
         current_config[f'history{index_in_history}'] = {}
         current_config[f'history{index_in_history}']['text_body'] = text_body
@@ -89,6 +104,7 @@ def update_history_index(text_body, critique, analysis):
         if os.path.exists(config_dir):
             with open(config_dir + '/history.ini', 'w') as configfile:
                 current_config.write(configfile)
+                update_selected_version()
                 print("config file written!", current_config)
         else:
             print("Directory not created!")
@@ -119,6 +135,11 @@ def get_combobox(combobox_input):
     global combobox
     combobox = combobox_input
 
+
+
+
+
+# Function that loops through all the history folders and finds the save names
 def get_save_names():
     save_names = []
     save_config = configparser.ConfigParser()
@@ -128,20 +149,20 @@ def get_save_names():
         dir_path = os.path.join(history_dir, path)
         save_name_file_path = os.path.join(dir_path, 'save_name.ini')
 
-        if os.path.isdir(dir_path):
-            if os.path.isfile(save_name_file_path):
-                save_config.read(save_name_file_path)
+        if os.path.isdir(dir_path): # If the path is a directory
+            if os.path.isfile(save_name_file_path): # If the save name file exists
+                save_config.read(save_name_file_path) # Read the save name file
 
-                if 'save_name' in save_config:
+                if 'save_name' in save_config: # If the save name section exists
                     save_name = save_config['save_name'].get('name')
-                    if save_name:
+                    if save_name: # If the save name is not empty apply the save name
                         save_names.append(save_name)
                     else:
-                        save_names.append("")
+                        save_names.append("Unnamed Save") 
                 else:
-                    save_names.append("")
+                    save_names.append("Unnamed Save")
             else:
-                save_names.append("")
+                save_names.append("Unnamed Save")
 
     return save_names
 
@@ -161,34 +182,55 @@ def get_history_values():
 
     # Combine history_list and save_names
     combined_list = []
-    for index, history_item in enumerate(history_list):
-        if index < len(save_names):
-            save_name = save_names[index]
+    for index, history_item in enumerate(history_list): # Iterate through the history list
+        if index < len(save_names): 
+            save_name = save_names[index] # If there is a save name, set it to the save name
         else:
-            save_name = ""
-        combined_list.append(f"Save: {history_item} | {save_name}")
+            save_name = "" # If there is no save name, set it to an empty string
+        combined_list.append(f"Save: {history_item} | {save_name}") # Combine the history item and the save name and save prefix
 
-    combobox["values"] = tuple(combined_list)
+    combobox['values'] = tuple(combined_list)
     set_current_history_index()
-    print(current_history_index)
     combobox.set(f"Save: {current_history_index} | {save_names[int(current_history_index) - 1]}")
 
+
+# Function that gets the latest version index
+def get_latest_version_index(config_dir):
+    version_config = configparser.ConfigParser()
+    version_config.read(config_dir + '/history.ini')
+    sections = version_config.sections()
+    latest_index = len(sections) - 1
+    if latest_index == -1: # If there are no sections, set the latest index to 0
+        latest_index = 0
+    return latest_index
+
+
+
 # Funtion that handles the history combobox changing and sets the current save index
-def on_history_changed():
-    combo_text = combobox.get()
-    dir_to_go = int(re.search(r'\d+', combo_text).group())
-    dir_to_go = str(dir_to_go)
-    global current_save_index
-    current_save_index = dir_to_go
-    for path in os.listdir(history_dir):
-        if os.path.isdir(os.path.join(history_dir, path)):
-            if path == dir_to_go:
-                config_dir = history_dir + '/' + str(path)
-                current_config.read(config_dir + '/history.ini')
-                try:
-                    return current_config['history0']['text_body'], current_config['history0']['critique'], current_config['history0']['analysis']
-                except:
-                    pass
+def on_history_changed(save_or_version):
+    try:
+        combo_text = combobox.get()
+        dir_to_go = int(re.search(r'\d+', combo_text).group())
+        dir_to_go = str(dir_to_go)
+        global current_save_index
+        current_save_index = dir_to_go
+        set_current_history_index()
+        for path in os.listdir(history_dir):
+            if os.path.isdir(os.path.join(history_dir, path)):
+                if path == dir_to_go:
+                    if save_or_version == "save": # If the save combobox was changed set the values to the latest version
+                        config_dir = history_dir + '/' + str(path)
+                        current_config.read(config_dir + '/history.ini')
+                        latest_version = get_latest_version_index(config_dir) # Get the latest version index 
+                    if save_or_version == "version": # If the version combobox was changed set values to the version
+                        latest_version = update_version_combobox()
+                        latest_version = int(latest_version) - 1
+                    try:
+                        return current_config[f'history{latest_version}']['text_body'], current_config[f'history{latest_version}']['critique'], current_config[f'history{latest_version}']['analysis']
+                    except:
+                        pass
+    except AttributeError: # This error only means that there are no history folders yet created and can be ignored
+        pass
 
 # Function that clears the empty history folders
 def clear_empty_history_folders():
@@ -204,7 +246,7 @@ def clear_empty_history_folders():
                     shutil.rmtree(config_dir)
                 except:
                     pass
-    on_history_changed()
+    on_history_changed("save")
 
 # Function that renames the history folders to be in order
 def name_history_files():
@@ -239,3 +281,62 @@ def create_update_save_name(save_name):
     with open(history_dir + '/' + str(current_save_index) + '/save_name.ini', 'w') as configfile:
         save_config.write(configfile)
     get_history_values()
+
+
+
+    #VERSION CODE
+def get_version_combobox(combobox_input):
+    global version_combobox
+    version_combobox = combobox_input
+
+def get_version_values():
+    set_current_history_index()
+    config_dir = history_dir + '/' + str(current_history_index)
+    latest_index = get_latest_version_index(config_dir)
+    version_values = []
+    for i in range(0, latest_index + 1):
+        version_values.append(i + 1)
+    return version_values
+
+def update_version_combobox():
+    version_list = get_version_values()
+    combined_list = []
+    for item in enumerate(version_list):
+        combined_list.append(f"Version: {item[1]}")
+
+    version_combobox['values'] = tuple(combined_list)
+    selected_value = version_combobox.get()
+    match = re.search(r'\d+', selected_value)
+    if match:
+        parsed_value = int(match.group())
+    else:
+        parsed_value = 0
+    return parsed_value
+
+def update_selected_version():
+    set_current_history_index()
+    config_dir = history_dir + '/' + str(current_history_index)
+    version_combobox_value = get_latest_version_index(config_dir)
+    version_combobox.set("Version: " + str(version_combobox_value + 1))
+
+def has_list_changed(old_list, new_list):
+    return old_list != new_list
+
+def on_list_changed():
+    print("List has been updated/changed.")
+
+def continuous_version_check(callback):
+    old_version_list = get_version_values()
+    while not stop_event.is_set():
+        time.sleep(0.2)
+        current_list = get_version_values()
+        if has_list_changed(old_version_list, current_list):
+            update_selected_version()
+            old_version_list = current_list
+            print("list updated")
+            callback()
+
+
+version_check_loop_thread = threading.Thread(target=continuous_version_check, args=(on_list_changed,))
+version_check_loop_thread.start()
+        
