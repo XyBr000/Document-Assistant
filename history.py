@@ -151,7 +151,10 @@ def get_history_values():
 
     # Filter the list to only include directories
     history_list = [int(item) for item in history_list if os.path.isdir(os.path.join(history_dir, item))]
-    
+
+    # If the list is empty, return
+    if history_list == []:
+        return
     # Sort the list numerically
     history_list.sort()
     save_names = get_save_names()
